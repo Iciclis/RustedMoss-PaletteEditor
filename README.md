@@ -1,2 +1,0 @@
-# RustedMoss-PaletteEditor
-test
