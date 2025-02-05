@@ -4,7 +4,7 @@
 ```
 self.editor_menu = undefined;
 self.update_texture = false;
-self.mode = global.maya_mode + global.ameli_mode_ * 2;
+self.mode = 0;
 
 if (global.PE){ 
     return}
@@ -28,14 +28,14 @@ global.PE = {
     paletteH : 56,
     palette_data : [],
     hair_number : [8, 1, 4],
-    splayer_palette : 0,
+    splayer_palette : [],
     shue : 0,
     scolor_rect : 0,
     salpha : 0,
     part_names_grid : 0,
     splayer_head : 0,
     spalette_bg : 0,
-    splayer_palette_ref : 0
+    splayer_palette_ref : []
 }
 global.maya_mode = 0;
 global.ameli_mode_ = 0;
@@ -181,6 +181,14 @@ global.PE.splayer_palette_ref = [
 
 if (!global.PE.turnOffPlayerReplace){
     alarm_set(0, 1);}
+
+live_snippet_call(live_snippet_create("
+global.fixed = function() {
+    with " + string(oplayer) + " {
+    event_inherited()
+    }
+}
+"))
 ```
 
 ## alarm_0
@@ -246,14 +254,6 @@ if (!global.PE.noMaya)
     global.__scarf_charged = global.PE.palette_data[1][54];
     global.__scarf_uncharged = global.PE.palette_data[1][55];
 }
-
-live_snippet_call(live_snippet_create("
-global.fixed = function() {
-  with " + string(oplayer) + " {
-    event_inherited()
-  }
-}
-"))
 ```
 
 ## room_start
@@ -265,8 +265,8 @@ if (room_get() == rm_menu and !self.update_texture)
 else if (self.update_texture)
 {
     self.mode = global.maya_mode + global.ameli_mode_ * 2;
-    global.palette_texture = sprite_get_texture(global.PE.splayer_palette[mode], 0);
-    global.hair_number_ = global.PE.hair_number[mode];
+    global.palette_texture = sprite_get_texture(global.PE.splayer_palette[self.mode], 0);
+    global.hair_number_ = global.PE.hair_number[self.mode];
     if (global.PE.turnOffPlayerReplace and self.mode > 0)
     {
         shader_replace_simple_set_hook(global.player_palette_shader_);
@@ -315,7 +315,7 @@ if (keyboard_check_pressed('P'))
     if(instance_exists(self.editor_menu)){
         with(self.editor_menu){ 
             instance_destroy(); }}
-    --//if player near save statue make editor window
+    --//if near save statue make editor window
     else if (check){ 
         self.editor_menu = instance_create_depth(0, 0, -100, omod_instance); }
 }
@@ -327,7 +327,7 @@ check = false;
 with (ogame){
     if (self.draw_map){ 
         check = true; }}
---//if map has been opened destroy editor window
+--//if map is open destroy editor window
 if (check){
     with(self.editor_menu){ 
         instance_destroy(); }}
