@@ -786,10 +786,16 @@ draw_set_color(c_white);
 if (!self.isHovering){
     return; }
 
+let ocam = instance_find(ocamera, 0);
+let xoffset = max(0, ((global.game_width - room_width_get()) >> 1));
+let yoffset = max(0, ((global.game_height - room_height_get()) >> 1));
+let mx = ((global.mousex - ocam.xpos) - xoffset);
+let my = ((global.mousey - ocam.ypos) - yoffset);
+
 if (self.isHoveringSatVal or self.isHoveringHue or self.isHoveringAlpha){
-    draw_sprite(scursor, 1, global.mouse_gui_x_, global.mouse_gui_y_); }
+    draw_sprite(scursor, 1, mx, my); }
 else{
-    draw_cursor(); }
+    draw_cursor(mx, my); }
 
 ```
 
