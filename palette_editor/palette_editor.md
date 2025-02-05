@@ -4,6 +4,7 @@
 ```
 self.editor_menu = undefined;
 self.update_texture = false;
+self.mode = global.maya_mode + global.ameli_mode_ * 2;
 
 if (global.PE){ 
     return}
@@ -136,7 +137,11 @@ let genPaletteData = fun (palette_sprite)
     buffer_delete(buff);
     return palette_data;
 }
-global.PE.palette_data = [genPaletteData(splayer_palette_fern), genPaletteData(splayer_palette_maya), genPaletteData(splayer_palette_ameli)];
+global.PE.palette_data = [
+    genPaletteData(splayer_palette_fern),
+    genPaletteData(splayer_palette_maya),
+    genPaletteData(splayer_palette_ameli)
+];
 
 if (file_exists(global.PE.modPath + "saved_palettes/hair_data.ini"))
 {
@@ -168,10 +173,11 @@ global.PE.salpha = sprite_add(global.PE.modPath + "alpha.png", 0, false, false, 
 global.PE.part_names_grid = load_csv(global.PE.modPath + "part_names.csv");
 global.PE.splayer_head = sprite_add(global.PE.modPath + "head.png", 2, false, false, 0, 0);
 global.PE.spalette_bg = sprite_add(global.PE.modPath + "palette_bg.png", 0, false, false, 0, 0);
-let splayer_palette_ref_fern = sprite_add(global.PE.modPath + "splayer_palette_ref_fern.png", 0, false, false, 0, 0);
-let splayer_palette_ref_maya = sprite_add(global.PE.modPath + "splayer_palette_ref_maya.png", 0, false, false, 0, 0);
-let splayer_palette_ref_ameli = sprite_add(global.PE.modPath + "splayer_palette_ref_ameli.png", 0, false, false, 0, 0);
-global.PE.splayer_palette_ref = [splayer_palette_ref_fern, splayer_palette_ref_maya, splayer_palette_ref_ameli];
+global.PE.splayer_palette_ref = [
+    sprite_add(global.PE.modPath + "splayer_palette_ref_fern.png", 0, false, false, 0, 0),
+    sprite_add(global.PE.modPath + "splayer_palette_ref_maya.png", 0, false, false, 0, 0),
+    sprite_add(global.PE.modPath + "splayer_palette_ref_ameli.png", 0, false, false, 0, 0)
+];
 
 if (!global.PE.turnOffPlayerReplace){
     alarm_set(0, 1);}
@@ -241,6 +247,13 @@ if (!global.PE.noMaya)
     global.__scarf_uncharged = global.PE.palette_data[1][55];
 }
 
+live_snippet_call(live_snippet_create("
+global.fixed = function() {
+  with " + string(oplayer) + " {
+    event_inherited()
+  }
+}
+"))
 ```
 
 ## room_start
@@ -251,10 +264,10 @@ if (room_get() == rm_menu and !self.update_texture)
 }
 else if (self.update_texture)
 {
-    let mode = global.maya_mode + global.ameli_mode_ * 2;
+    self.mode = global.maya_mode + global.ameli_mode_ * 2;
     global.palette_texture = sprite_get_texture(global.PE.splayer_palette[mode], 0);
     global.hair_number_ = global.PE.hair_number[mode];
-    if (global.PE.turnOffPlayerReplace and self.mode != 0)
+    if (global.PE.turnOffPlayerReplace and self.mode > 0)
     {
         shader_replace_simple_set_hook(global.player_palette_shader_);
         shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 0,0]);
@@ -264,28 +277,31 @@ else if (self.update_texture)
 }
 ```
 
+## step_end
+```
+if (!self.mode){
+    return;}
+
+with (oplayer)
+{
+    if (!self.hair_init and self.ameli_inited)
+    {
+        self.hair_number = global.hair_number_;
+        self.hair_init = true;
+    }
+    if (!self.swapped_to_mod and !global.PE.turnOffPlayerReplace)
+    {
+        self.swapped_to_mod = true;
+        self.mod_name = global.rmml_current_mod;
+        instance_change(omod_player, false);
+    }
+}
+```
+
 ## step
 ```
 if ((global.PE.noAmeli and global.ameli_mode_) or (global.PE.noMaya and global.maya_mode)){
     return; }
-
-if ((global.maya_mode or global.ameli_mode_))
-{
-    with (oplayer)
-    {
-        if (!self.swapped_to_mod and !global.PE.turnOffPlayerReplace)
-        {
-            instance_change(omod_player, false);
-            self.swapped_to_mod = true;
-            self.mod_name = global.rmml_current_mod;
-        }
-        if (!self.hair_init and self.ameli_inited)
-        {
-            self.hair_number = global.hair_number_;
-            self.hair_init = true;
-        }
-    }
-}
 
 if (!instance_exists(osave_point)){ 
     return }
@@ -299,7 +315,7 @@ if (keyboard_check_pressed('P'))
     if(instance_exists(self.editor_menu)){
         with(self.editor_menu){ 
             instance_destroy(); }}
-    --//if near save statue make editor window
+    --//if player near save statue make editor window
     else if (check){ 
         self.editor_menu = instance_create_depth(0, 0, -100, omod_instance); }
 }
@@ -323,32 +339,22 @@ if ((global.PE.noAmeli and global.ameli_mode_) or (global.PE.noMaya and global.m
     return; }
 
 if(!instance_exists(osave_point) or self.vanillaSaveTextbox){ 
-    return }
+    return; }
 
 --//draw prompt with open editor hotkey
-let save_effect = 0;
-with (ogame){
-    save_effect = self.save_effect; }
-
 with (osave_point)
 {
-    if (place_meeting(self.x, self.y, oplayer) and (global.gamestate == 1) and (save_effect <= 0))
+    if (self.text_box)
     {
-        if (self.text_box != self and self.text_box != self.text_box2){
-            instance_destroy(self.text_box); }
-
-        let key1 = input_to_visual("down");
-        let key2 = input_interact_string();
-        if (self.text_box2 == undefined)
+        if (!self.replaced_txtbox)
         {
-            self.text_box2 = create_9slice(self.x, self.y - 64, (key1 + " " + ui_load_entry("save:menu_new", 0) + "\n" + key2 + " " + ui_load_entry("save:menu_new", 1) + "\nP = Edit Palette"), 1);
-            self.text_box = self.text_box2;
+            (self.text_box).text += "\nP = Edit Palette";
+            self.replaced_txtbox = true;
         }
     }
-    else if ((self.text_box2 != undefined))
+    else
     {
-        instance_destroy(self.text_box2);
-        self.text_box2 = undefined;
+        self.replaced_txtbox = false;
     }
 }
 ```
@@ -907,7 +913,35 @@ event_inherited();
 ```
 ## step_end
 ```
-event_inherited();
+global.fixed();
+with (ofx)
+{
+    let indx = self.sprite_index;
+    match (self.sprite_index)
+    {
+        case splayer_maya_hand_outer {}
+        case splayer_maya_body {}
+        case splayer_maya_body_upper {}
+        case splayer_maya_legs {}
+        case splayer_maya_legs_jump {}
+        case splayer_maya_legs_run {}
+        case splayer_maya_legs_crouching {}
+        case splayer_maya_eyes_mid {}
+        case splayer_maya_eyes_mid_up {}
+        case splayer_maya_eyes_up {}
+        case splayer_maya_eyes_down {}
+        case splayer_maya_hand_inner {}
+        case splayer_maya_head {}
+        case splayer_maya_hand_inner {}
+        case splayer_maya_slash {}
+        else { 
+            --global.rmml.log(sprite_get_name(self.sprite_index))
+            return }
+    }
+    self.mod_name = global.rmml_current_mod;
+    instance_change(omod_basic, false);
+    self.sprite_index = indx;
+}
 ```
 ## animation_end
 ```
@@ -938,6 +972,8 @@ if (check and self.hair != -1)
 {
     draw_circle_color(self.hair[0].x, self.hair[0].y, self.hair_size, global.__ameli_hair, global.__ameli_hair, 0);
 }
+
+draw_text(self.x-10, self.y-50, string(global.current_weapon_));
 ```
 ## draw_end
 ```
@@ -950,4 +986,29 @@ event_inherited();
 ## cleanup
 ```
 event_inherited();
+```
+
+# basic
+## create
+```
+event_perform_object(ofx, ev_create, 0); 
+```
+## alarm_0
+```
+event_perform_object(ofx, ev_alarm, 0); 
+```
+## step
+```
+event_perform_object(ofx, ev_step, 0);
+```
+## animation_end
+```
+event_perform_object(ofx, ev_other, ev_animation_end); 
+```
+## draw
+```
+shader_replace_simple_set_hook(global.player_palette_shader_);
+texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
+event_perform_object(ofx, ev_draw, 0);
+shader_replace_simple_reset_hook();
 ```
