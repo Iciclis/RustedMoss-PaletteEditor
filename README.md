@@ -8,4 +8,5 @@ Palette Editor v0.1: get that look you've ever wanted without exiting the game
 - If you don't like an extra tooltip at the save statue or editor window moving when you go near it, you can turn it off in the `palette_editor.md` file
 - If you use any other mod that modifies the player you should turn off player replacement in the `palette_editor.md` file
 - If you're upgrading from earlier version open `%localappdata%\Rusted_Moss\Fern_custom` and copy your `palette.png` and `hair_data.ini` to the `Fern_custom` that is in the game install folder and then delete `Fern_custom` from local appdata
+
 **WARNING! RMML is required for this mod!**
