@@ -979,7 +979,6 @@ if (check and self.hair != -1)
     draw_circle_color(self.hair[0].x, self.hair[0].y, self.hair_size, global.__ameli_hair, global.__ameli_hair, 0);
 }
 
-draw_text(self.x-10, self.y-50, string(global.current_weapon_));
 ```
 ## draw_end
 ```
