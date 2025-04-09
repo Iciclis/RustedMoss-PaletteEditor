@@ -8,6 +8,7 @@ self.mode = 0;
 
 if (global.PE){ 
     return}
+
 global.PE = {
     --//CHANGE THIS TO TRUE IF YOU DON'T WANT THE EXTRA PROMPT ABOUT P FOR PALETTE EDITOR ON SAVE POINTS
     vanillaSaveTextbox : false,
@@ -22,8 +23,8 @@ global.PE = {
     --//CHANGE THIS TO TRUE IF YOU WANT HAIR ON MAYA
     forceHair : false,
 
-    noAmeli : false,
-    noMaya : false,
+    noAmeli : !global.rmml.__mod_controllers.ameli_palette,
+    noMaya : !global.rmml.__mod_controllers.maya_palette,
     modPath : "mods/rmml/palette_editor/",
     paletteH : 56,
     palette_data : [],
@@ -88,7 +89,8 @@ let splayer_palette_ameli = if (file_exists(global.PE.modPath + "saved_palettes/
         global.PE.noAmeli = true;
         splayer_palette_fern;
     }
-
+    global.rmml.log(global.PE.noMaya);
+    global.rmml.log(global.PE.noAmeli);
 global.PE.splayer_palette = [splayer_palette_fern, splayer_palette_maya, splayer_palette_ameli];
 global.PE.paletteH = sprite_get_height(global.PE.splayer_palette[0]);
 global.palette_texture = sprite_get_texture(global.PE.splayer_palette[0], 0);
@@ -204,18 +206,18 @@ let loadSprites = fun(path)
         let subimage_number = sprite_get_number(index);
         let xoffset = sprite_get_xoffset(index);
         let yoffset = sprite_get_yoffset(index);
-        match (index) {
-            case smaya_legs_idle {
-                sprite_replace(global.__ameli_idle, path + f, subimage_number, false, false, xoffset, yoffset);
-            }
-            case smaya_legs_run {
-                sprite_replace(global.__ameli_run, path + f, subimage_number, false, false, xoffset, yoffset);
-            }
-            case splayer_maya_legs_crouching {
-                sprite_replace(global.__ameli_crouch, path + f, subimage_number, false, false, xoffset, yoffset);
-            }
-            else {
-                sprite_replace(index, path + f, subimage_number, false, false, xoffset, yoffset);
+        if (!global.PE.noAmeli)
+        {
+            match (index) {
+                case smaya_legs_idle {
+                    sprite_replace(global.__ameli_idle, path + f, subimage_number, false, false, xoffset, yoffset);
+                }
+                case smaya_legs_run {
+                    sprite_replace(global.__ameli_run, path + f, subimage_number, false, false, xoffset, yoffset);
+                }
+                case splayer_maya_legs_crouching {
+                    sprite_replace(global.__ameli_crouch, path + f, subimage_number, false, false, xoffset, yoffset);
+                }
             }
         }
         sprite_replace(index, path + f, subimage_number, false, false, xoffset, yoffset);
@@ -238,6 +240,10 @@ if (!global.PE.noAmeli)
         global.rmml.log("Replacement Failed! Is everything alright with ameli_palette mod?");
     }
     global.__ameli_hair = global.PE.palette_data[2][55];
+}
+else
+{
+    global.__ameli_hair = 4279375380;
 }
 
 if (!global.PE.noMaya)
@@ -923,7 +929,7 @@ global.fixed();
 with (ofx)
 {
     let indx = self.sprite_index;
-    match (self.sprite_index)
+    match (indx)
     {
         case splayer_maya_hand_outer {}
         case splayer_maya_body {}
@@ -940,8 +946,15 @@ with (ofx)
         case splayer_maya_head {}
         case splayer_maya_hand_inner {}
         case splayer_maya_slash {}
+        case senemy_heart {}
+        case sgun_blink {}
+        case sgun_blink_2 {}
+        case sbullet_trail_grayscale {}
+        case sbullet_trail {}
+        case smunney_trail {}
+        case sexplotion {}
         else { 
-            --global.rmml.log(sprite_get_name(self.sprite_index))
+            --global.rmml.log(sprite_get_name(indx))
             return }
     }
     self.mod_name = global.rmml_current_mod;
