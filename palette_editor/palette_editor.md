@@ -89,8 +89,6 @@ let splayer_palette_ameli = if (file_exists(global.PE.modPath + "saved_palettes/
         global.PE.noAmeli = true;
         splayer_palette_fern;
     }
-    global.rmml.log(global.PE.noMaya);
-    global.rmml.log(global.PE.noAmeli);
 global.PE.splayer_palette = [splayer_palette_fern, splayer_palette_maya, splayer_palette_ameli];
 global.PE.paletteH = sprite_get_height(global.PE.splayer_palette[0]);
 global.palette_texture = sprite_get_texture(global.PE.splayer_palette[0], 0);
@@ -323,7 +321,7 @@ if (keyboard_check_pressed('P'))
             instance_destroy(); }}
     --//if near save statue make editor window
     else if (check){ 
-        self.editor_menu = instance_create_depth(0, 0, -100, omod_instance); }
+        self.editor_menu = instance_create_depth(0, 0, -100, omod_instance, {ddtype : 0}); }
 }
 
 if (!instance_exists(self.editor_menu)){ 
@@ -369,6 +367,11 @@ with (osave_point)
 
 ## create
 ```
+if (self.type == 1)
+{
+    event_perform_object(ofx, ev_create, 0); 
+    return
+}
 self.inv255 = 1 / 255;
 self.ox = 370;
 self.oy = 16;
@@ -486,6 +489,12 @@ if (global.PE.turnOffPlayerReplace and self.mode != 0)
 
 ## step
 ```
+if (self.type == 1)
+{
+    event_perform_object(ofx, ev_step, 0);
+    return
+}
+
 --//move editor window if it's over the player
 let px = 0;
 with (ocamera)
@@ -654,8 +663,24 @@ else
 }
 ```
 
+## draw
+```
+if (self.type == 1)
+{
+    shader_replace_simple_set_hook(global.player_palette_shader_);
+    texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
+    event_perform_object(ofx, ev_draw, 0);
+    shader_replace_simple_reset_hook();
+    return
+}
+```
+
 ## draw_gui_end
 ```
+if (self.type == 1)
+{
+    return
+}
 if (!instance_exists(oplayer)){
     return; }
 
@@ -805,8 +830,22 @@ else{
 
 ```
 
+## animation_end
+```
+if (self.type == 1)
+{
+    event_perform_object(ofx, ev_other, ev_animation_end); 
+    return
+}
+```
+
 ## alarm_0
 ```
+if (self.type == 1)
+{
+    event_perform_object(ofx, ev_alarm, 0); 
+    return
+}
 self.color = make_colour_hsv(self.h, self.s, self.v) | ((floor(self.a * 255) << 24));
 self.R = colour_get_red(self.color);
 self.G = colour_get_green(self.color);
@@ -865,6 +904,10 @@ if  (global.ameli_mode_)
 
 ## cleanup
 ```
+if (self.type == 1)
+{
+    return
+}
 let modeStr = match(self.mode)
 {
     case 2 {"_ameli"}
@@ -958,7 +1001,8 @@ with (ofx)
             return }
     }
     self.mod_name = global.rmml_current_mod;
-    instance_change(omod_basic, false);
+    instance_change(omod_instance, false);
+    self.type = 1;
     self.sprite_index = indx;
 }
 ```
@@ -1004,29 +1048,4 @@ event_inherited();
 ## cleanup
 ```
 event_inherited();
-```
-
-# basic
-## create
-```
-event_perform_object(ofx, ev_create, 0); 
-```
-## alarm_0
-```
-event_perform_object(ofx, ev_alarm, 0); 
-```
-## step
-```
-event_perform_object(ofx, ev_step, 0);
-```
-## animation_end
-```
-event_perform_object(ofx, ev_other, ev_animation_end); 
-```
-## draw
-```
-shader_replace_simple_set_hook(global.player_palette_shader_);
-texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
-event_perform_object(ofx, ev_draw, 0);
-shader_replace_simple_reset_hook();
 ```
