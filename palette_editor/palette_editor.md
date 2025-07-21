@@ -7,17 +7,18 @@ self.update_texture = false;
 self.mode = 0;
 
 if (global.PE){ 
-    return}
+    return
+}
 
 global.PE = {
     --//CHANGE THIS TO TRUE IF YOU DON'T WANT THE EXTRA PROMPT ABOUT P FOR PALETTE EDITOR ON SAVE POINTS
     vanillaSaveTextbox : false,
 
     --//CHANGE THIS TO TRUE IF YOU DON'T WANT THE EDITOR WINDOW TO MOVE
-    turnOffReposition : false,
+    LockPosition : false,
 
-    --//CHANGE THIS TO TRUE IF YOU HAVE ANY OTHER MOD THAT REPLACES OPLAYER!!!
-    turnOffPlayerReplace : false,
+    --//CHANGE THIS TO FALSE IF YOU HAVE ANY OTHER MOD THAT REPLACES OPLAYER!!!
+    ReplacePlayer : true,
 
     --//EXPERIMENTAL!!! MIGHT BREAK STUFF!!!
     --//CHANGE THIS TO TRUE IF YOU WANT HAIR ON MAYA
@@ -38,54 +39,62 @@ global.PE = {
     spalette_bg : 0,
     splayer_palette_ref : []
 }
+if (file_exists("mods/rmml/palette_editor/config.ini")){
+    ini_open("mods/rmml/palette_editor/config.ini");
+    global.PE.vanillaSaveTextbox = ini_read_real("Settings", "vanillaSaveTextbox", 0);
+    global.PE.LockPosition = ini_read_real("Settings", "LockPosition", 0);
+    global.PE.ReplacePlayer = ini_read_real("Settings", "ReplacePlayer", 1);
+    global.PE.forceHair = ini_read_real("Settings", "forceHair", 0);
+    ini_close();
+}
+else {
+    ini_open("mods/rmml/palette_editor/config.ini");
+    ini_write_real("Settings", "vanillaSaveTextbox", global.PE.vanillaSaveTextbox);
+    ini_write_real("Settings", "LockPosition", global.PE.LockPosition);
+    ini_write_real("Settings", "ReplacePlayer", global.PE.ReplacePlayer);
+    ini_write_real("Settings", "forceHair", global.PE.forceHair);
+    ini_close();
+}
+
 global.maya_mode = 0;
 global.ameli_mode_ = 0;
 
-let splayer_palette_fern = if (file_exists(global.PE.modPath + "saved_palettes/palette_fern.png"))
-    {
+let splayer_palette_fern = if (file_exists(global.PE.modPath + "saved_palettes/palette_fern.png")){
         global.rmml.log("Loading Fern palette...");
         sprite_add(global.PE.modPath + "saved_palettes/palette_fern.png", 0, false, false, 0, 0);
     }
-    else if (file_exists("Fern_custom/palette.png"))
-    {
+    else if (file_exists("Fern_custom/palette.png")){
         global.rmml.log("Loaded palette from Fern_custom");
         sprite_add("Fern_custom/palette.png", 0, false, false, 0, 0);
     }
-    else
-    {
+    else {
         global.rmml.log("No palettes found for Fern! Loading backup pallette");
         sprite_add(global.PE.modPath + "backup_palette.png", 0, false, false, 0, 0);
     }
     
-let splayer_palette_maya = if (file_exists(global.PE.modPath + "saved_palettes/palette_maya.png"))
-    {
+let splayer_palette_maya = if (file_exists(global.PE.modPath + "saved_palettes/palette_maya.png")){
         global.rmml.log("Loading Maya palette...");
         sprite_add(global.PE.modPath + "saved_palettes/palette_maya.png", 0, false, false, 0, 0);
     }
-    else if (file_exists("mods/rmml/maya_palette/palette.png"))
-    {
+    else if (file_exists("mods/rmml/maya_palette/palette.png")){
         global.rmml.log("No palettes found for Maya! Loading backup pallette");
         sprite_add("mods/rmml/maya_palette/palette.png", 0, false, false, 0, 0);
     }
-    else
-    {
-        global.rmml.log("maya_palette mod not found! No palettes for Maya today(");
+    else {
+        global.rmml.log("maya_palette mod not found! No palettes for Maya today");
         global.PE.noMaya = true;
         splayer_palette_fern;
     }
-let splayer_palette_ameli = if (file_exists(global.PE.modPath + "saved_palettes/palette_ameli.png"))
-    {
+let splayer_palette_ameli = if (file_exists(global.PE.modPath + "saved_palettes/palette_ameli.png")){
         global.rmml.log("Loading Ameli palette...");
         sprite_add(global.PE.modPath + "saved_palettes/palette_ameli.png", 0, false, false, 0, 0);
     }
-    else if (file_exists("mods/rmml/ameli_palette/palette.png"))
-    {
+    else if (file_exists("mods/rmml/ameli_palette/palette.png")){
         global.rmml.log("No palettes found for Ameli! Loading backup pallette");
         sprite_add("mods/rmml/ameli_palette/palette.png", 0, false, false, 0, 0);
     }
-    else
-    {
-        global.rmml.log("ameli_palette mod not found! No palettes for Ameli today(");
+    else {
+        global.rmml.log("ameli_palette mod not found! No palettes for Ameli today");
         global.PE.noAmeli = true;
         splayer_palette_fern;
     }
@@ -93,8 +102,7 @@ global.PE.splayer_palette = [splayer_palette_fern, splayer_palette_maya, splayer
 global.PE.paletteH = sprite_get_height(global.PE.splayer_palette[0]);
 global.palette_texture = sprite_get_texture(global.PE.splayer_palette[0], 0);
 
-if (!global.player_use_shader)
-{
+if (!global.player_use_shader){
     global.player_use_shader = true;
     global.player_palette_shader_ = shd_palette;
     shader_replace_simple_set_hook(global.player_palette_shader_);
@@ -112,8 +120,7 @@ if (!global.player_use_shader)
     shader_replace_simple_reset_hook();
 }
 
-let genPaletteData = fun (palette_sprite)
-{
+let genPaletteData = fun (palette_sprite){
     let palette_data = array_create(global.PE.paletteH);
     if (palette_sprite == undefined){
         return palette_data;}
@@ -127,8 +134,7 @@ let genPaletteData = fun (palette_sprite)
     buffer_get_surface(buff, surf, 0);
     let i = 0;
     buffer_seek(buff, buffer_seek_start, 0);
-    while (i < global.PE.paletteH)
-    {
+    while (i < global.PE.paletteH){
         palette_data[i] = buffer_read(buff, buffer_u32);
         i += 1;
     }
@@ -143,8 +149,7 @@ global.PE.palette_data = [
     genPaletteData(splayer_palette_ameli)
 ];
 
-if (file_exists(global.PE.modPath + "saved_palettes/hair_data.ini"))
-{
+if (file_exists(global.PE.modPath + "saved_palettes/hair_data.ini")){
     ini_open(global.PE.modPath + "saved_palettes/hair_data.ini");
     global.PE.hair_number[0] = ini_read_real("hair_data", "length", 8);
     global.PE.hair_number[1] = ini_read_real("hair_data", "maya_length", 1);
@@ -153,11 +158,10 @@ if (file_exists(global.PE.modPath + "saved_palettes/hair_data.ini"))
     global.hair_end_col_ = ini_read_real("hair_data", "end_col", 4281478686);
     ini_close();
 }
-else
-{
+else {
     global.hair_start_col_ = 4279836483;
     global.hair_end_col_ = 4281478686;
-    ini_open(global.PE.modPath + "saved_palettes/hair_data.ini")
+    ini_open(global.PE.modPath + "saved_palettes/hair_data.ini");
     ini_write_real("hair_data", "length", global.PE.hair_number[0]);
     ini_write_real("hair_data", "maya_length", global.PE.hair_number[1]);
     ini_write_real("hair_data", "ameli_length", global.PE.hair_number[2]);
@@ -179,33 +183,35 @@ global.PE.splayer_palette_ref = [
     sprite_add(global.PE.modPath + "splayer_palette_ref_ameli.png", 0, false, false, 0, 0)
 ];
 
-if (!global.PE.turnOffPlayerReplace){
-    alarm_set(0, 1);}
-
 live_snippet_call(live_snippet_create("
 global.fixed = function() {
     with " + string(oplayer) + " {
-    event_inherited()
+        event_inherited()
     }
 }
 "))
+
+let path = if (global.maya_mode){
+    "mods/rmml/maya_palette/DO_NOT_TOUCH/"
+} else{
+    "mods/rmml/ameli_palette/DO_NOT_TOUCH/"
+}
+self.f = file_find_first(path + "*.png", 0)
 ```
 
 ## alarm_0
 ```
-let loadSprites = fun(path)
-{
+let loadSprites = fun(path){
     let f = file_find_first(path + "*.png", 0)
     let i = 0;
-    while (f != "")
-    {
+    while (f != ""){
         let name = string_split(f, ".png")[0];
         let index = asset_get_index(name);
         let subimage_number = sprite_get_number(index);
         let xoffset = sprite_get_xoffset(index);
         let yoffset = sprite_get_yoffset(index);
-        if (!global.PE.noAmeli)
-        {
+
+        if (!global.PE.noAmeli){
             match (index) {
                 case smaya_legs_idle {
                     sprite_replace(global.__ameli_idle, path + f, subimage_number, false, false, xoffset, yoffset);
@@ -223,36 +229,29 @@ let loadSprites = fun(path)
         i += 1;
     }
     file_find_close();
-    return i
+    return i;
 }
 
-if (!global.PE.noAmeli)
-{
+if (!global.PE.noAmeli){
     global.rmml.log("Replacing Sprites for Ameli...");
-    if (loadSprites("mods/rmml/ameli_palette/DO_NOT_TOUCH/") > 0)
-    {
+    if (loadSprites("mods/rmml/ameli_palette/DO_NOT_TOUCH/") > 0){
         global.rmml.log("Sprites Replaced!");
     }
-    else 
-    {
+    else {
         global.rmml.log("Replacement Failed! Is everything alright with ameli_palette mod?");
     }
     global.__ameli_hair = global.PE.palette_data[2][55];
 }
-else
-{
+else {
     global.__ameli_hair = 4279375380;
 }
 
-if (!global.PE.noMaya)
-{
+if (!global.PE.noMaya){
     global.rmml.log("Replacing Sprites for Maya...");
-    if (loadSprites("mods/rmml/maya_palette/DO_NOT_TOUCH/") > 0)
-    {
+    if (loadSprites("mods/rmml/maya_palette/DO_NOT_TOUCH/") > 0){
         global.rmml.log("Sprites Replaced!");
     }
-    else 
-    {
+    else {
         global.rmml.log("Replacement Failed! Is everything alright with maya_palette mod?");
     }
     global.__scarf_charged = global.PE.palette_data[1][54];
@@ -260,41 +259,104 @@ if (!global.PE.noMaya)
 }
 ```
 
+## alarm_1
+```
+let path = if (global.maya_mode){
+    "mods/rmml/maya_palette/DO_NOT_TOUCH/"
+} else{
+    "mods/rmml/ameli_palette/DO_NOT_TOUCH/"
+}
+if (self.f != ""){
+    let name = string_split(self.f, ".png")[0];
+    let index = asset_get_index(name);
+    let subimage_number = sprite_get_number(index);
+    let xoffset = sprite_get_xoffset(index);
+    let yoffset = sprite_get_yoffset(index);
+    let dest_img = path;
+
+    shader_replace_simple_set_hook(global.player_palette_shader_);
+    shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 1,1]);
+    texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
+    
+    let width = sprite_get_width(index);
+    let height = sprite_get_height(index);
+    let pal_sprite = sprite_add(path + self.f, subimage_number, false, false, 0, 0);
+    let surf = surface_create(width * subimage_number, height);
+    dest_img = temp_directory_get() + "PE/"
+    surface_set_target(surf);
+
+    let img_index = 0;
+    while (img_index < subimage_number) {
+        draw_sprite(pal_sprite, img_index, img_index * width, 0);
+        img_index += 1;
+    }
+
+    surface_reset_target();
+    surface_save(surf, dest_img + self.f)
+    surface_free(surf);
+    shader_replace_simple_reset_hook();
+    
+    sprite_replace(index, dest_img + self.f, subimage_number, false, false, xoffset, yoffset);
+    sprite_delete(pal_sprite);
+
+    if (!global.PE.noAmeli){
+        match (index) {
+            case smaya_legs_idle {
+                sprite_replace(global.__ameli_idle, dest_img + self.f, subimage_number, false, false, xoffset, yoffset);
+            }
+            case smaya_legs_run {
+                sprite_replace(global.__ameli_run, dest_img + self.f, subimage_number, false, false, xoffset, yoffset);
+            }
+            case splayer_maya_legs_crouching {
+                sprite_replace(global.__ameli_crouch, dest_img + self.f, subimage_number, false, false, xoffset, yoffset);
+            }
+        }
+    }
+    sprite_replace(index, dest_img + self.f, subimage_number, false, false, xoffset, yoffset);
+    self.f = file_find_next();
+    alarm_set(1,1);
+}else {
+    file_find_close();
+    shader_replace_simple_set_hook(global.player_palette_shader_);
+    shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 0,0]);
+    shader_replace_simple_reset_hook();
+}
+```
+
 ## room_start
 ```
-if (room_get() == rm_menu and !self.update_texture)
-{
+if (room_get() == rm_menu and !self.update_texture){
     self.update_texture = true;
 }
-else if (self.update_texture)
-{
+else if (self.update_texture){
     self.mode = global.maya_mode + global.ameli_mode_ * 2;
     global.palette_texture = sprite_get_texture(global.PE.splayer_palette[self.mode], 0);
     global.hair_number_ = global.PE.hair_number[self.mode];
-    if (global.PE.turnOffPlayerReplace and self.mode > 0)
-    {
+    if (!global.PE.ReplacePlayer and self.mode > 0){
         shader_replace_simple_set_hook(global.player_palette_shader_);
         shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 0,0]);
         shader_replace_simple_reset_hook();
     }
     self.update_texture = false;
+
+    if (global.PE.ReplacePlayer){
+        alarm_set(0, 1);
+    }
 }
 ```
 
 ## step_end
 ```
 if (!self.mode){
-    return;}
+    return;
+}
 
-with (oplayer)
-{
-    if (!self.hair_init and self.ameli_inited)
-    {
+with (oplayer){
+    if (!self.hair_init and self.ameli_inited){
         self.hair_number = global.hair_number_;
         self.hair_init = true;
     }
-    if (!self.swapped_to_mod and !global.PE.turnOffPlayerReplace)
-    {
+    if (!self.swapped_to_mod and global.PE.ReplacePlayer){
         self.swapped_to_mod = true;
         self.mod_name = global.rmml_current_mod;
         instance_change(omod_player, false);
@@ -305,59 +367,67 @@ with (oplayer)
 ## step
 ```
 if ((global.PE.noAmeli and global.ameli_mode_) or (global.PE.noMaya and global.maya_mode)){
-    return; }
+    return;
+}
 
 if (!instance_exists(osave_point)){ 
-    return }
+    return;
+}
 
 let check = false;
 with(osave_point){ 
-    check = place_meeting(self.x, self.y, oplayer) and (!self.delay); }
+    check = place_meeting(self.x, self.y, oplayer) and (!self.delay); 
+}
 
-if (keyboard_check_pressed('P'))
-{
+if (keyboard_check_pressed('P')){
     if(instance_exists(self.editor_menu)){
-        with(self.editor_menu){ 
-            instance_destroy(); }}
+        with(self.editor_menu){
+            instance_destroy();
+        }
+    }
     --//if near save statue make editor window
     else if (check){ 
-        self.editor_menu = instance_create_depth(0, 0, -100, omod_instance, {ddtype : 0}); }
+        self.editor_menu = instance_create_depth(0, 0, -100, omod_instance, {parentController : self.id});
+    }
 }
 
 if (!instance_exists(self.editor_menu)){ 
-    return }
+    return;
+}
 
 check = false; 
 with (ogame){
     if (self.draw_map){ 
-        check = true; }}
+        check = true; 
+    }
+}
 --//if map is open destroy editor window
 if (check){
     with(self.editor_menu){ 
-        instance_destroy(); }}
+        instance_destroy(); 
+    }
+}
 ```
 
 ## draw
 ```
 if ((global.PE.noAmeli and global.ameli_mode_) or (global.PE.noMaya and global.maya_mode)){
-    return; }
+    return;
+}
 
 if(!instance_exists(osave_point) or self.vanillaSaveTextbox){ 
-    return; }
+    return;
+}
 
 --//draw prompt with open editor hotkey
-with (osave_point)
-{
-    if (self.text_box)
-    {
-        if (!self.replaced_txtbox)
-        {
-            (self.text_box).text += "\nP = Edit Palette";
+with (osave_point){
+    if (self.text_box){
+        if (!self.replaced_txtbox){
+            (self.text_box).text += "\nP  = Palette";
             self.replaced_txtbox = true;
         }
     }
-    else
-    {
+    else {
         self.replaced_txtbox = false;
     }
 }
@@ -367,23 +437,20 @@ with (osave_point)
 
 ## create
 ```
-if (self.type == 1)
-{
-    event_perform_object(ofx, ev_create, 0); 
-    return
-}
 self.inv255 = 1 / 255;
-self.ox = 370;
-self.oy = 16;
+self.farR = global.game_width + 20;
 self.wh = 64;
+self.farL = -self.wh - 11
+self.ox = self.farR;
+self.targetX = 370; 
+self.oy = 16;
 self.headW = sprite_get_width(global.PE.splayer_head);
 self.headH = sprite_get_height(global.PE.splayer_head);
 self.colRectWH = 19;
 self.HueH = 5;
 self.AlphaH = 5;
 self.HairButtonsWH = 8;
-self.updateOffsets = fun()
-{
+self.updateOffsets = fun(){
     self.offsetW = self.ox + self.wh;
     self.offsetH = self.oy + self.wh;
     self.offsetHueY = self.offsetH + 4;
@@ -398,20 +465,34 @@ self.updateOffsets = fun()
     self.offsetHairButtonsY = self.offsetHeadY + self.headH - (self.HairButtonsWH >> 1);
     self.offsetPreviewX = self.ox - 14;
     self.offsetPreviewY = self.offsetTextY + 63;
+    self.offsetSettingsX = self.ox + 35;
+    self.offsetSettingsY = self.offsetPreviewY + 8;
 }
 self.updateOffsets();
+
+self.move = fun(){
+    self.ox = lerp(self.ox, self.targetX, 0.5);
+    self.updateOffsets();
+}
 
 self.isHovering = false;
 self.isHoveringHue = false;
 self.isHoveringAlpha = false;
 self.isHoveringSatVal = false;
 self.isHoveringHairLength = false;
+self.isHoveringReplace = false;
+self.isHoveringLock = false;
+self.isHoveringForceHair = false;
+
 self.isSelectedHue = false;
 self.isSelectedAlpha = false;
 self.isSelectedSatVal = false;
 self.isSelectedPalette = false;
 self.isSelectedHair = false;
 self.isSelectedHairLength = false;
+self.isSelectedReplace = false;
+self.isSelectedLock = false;
+self.isSelectedForceHair = false;
 
 self.hairLengthButton = 0;
 self.timer = 0;
@@ -420,14 +501,12 @@ self.pressTimerMax = 3;
 self.mode = global.maya_mode + global.ameli_mode_ * 2;
 self.hairNumber_ = global.PE.hair_number[self.mode];
 
-self.generateHex = fun()
-{
+self.generateHex = fun(){
     let hex = "0123456789ABCDEF";
     let col = self.color;
     let i = 3;
     self.hex = "#";
-    while (i > 0)
-    {
+    while (i > 0){
         self.hex += string_copy(hex, (col >> 4 & 15) + 1, 1) + string_copy(hex, (col & 15) + 1, 1);
         col = col >> 8;
         i -= 1;
@@ -435,8 +514,7 @@ self.generateHex = fun()
 }
 
 self.selectedPart = 0;
-self.updatePicker = fun(col)
-{
+self.updatePicker = fun(col){
     self.color = col;
     self.h = colour_get_hue(col);
     self.s = colour_get_saturation(col);
@@ -454,24 +532,23 @@ self.updatePicker = fun(col)
 }
 self.updatePicker(global.PE.palette_data[self.mode][self.selectedPart]);
 
-self.updateHair = fun(length)
-{
+self.updateHair = fun(length){
     if (length == undefined){ 
-        self.hairNumber_ -= self.hairLengthButton; }
-    else{ 
-        self.hairNumber_ = length; }
-    self.hairNumber_ = clamp(self.hairNumber_, 1, 255)
+        self.hairNumber_ -= self.hairLengthButton;
+    }
+    else { 
+        self.hairNumber_ = length;
+    }
+    self.hairNumber_ = clamp(self.hairNumber_, 1, 255);
     global.PE.hair_number[self.mode] = floor(self.hairNumber_);
     global.hair_number_ = global.PE.hair_number[self.mode];
     
     let other = self.id;
-    with (oplayer)
-    {
+    with (oplayer){
         self.hair_number = global.PE.hair_number[other.mode];
         let i = self.hair_number;
         self.hair = [];
-        while (i)
-        {
+        while (i){
             array_push(self.hair, struct_gen());
             i -= 1;
         }
@@ -479,8 +556,7 @@ self.updateHair = fun(length)
 }
 self.updateHair();
 
-if (global.PE.turnOffPlayerReplace and self.mode != 0)
-{
+if (!global.PE.ReplacePlayer and self.mode != 0){
     shader_replace_simple_set_hook(global.player_palette_shader_);
     shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 1,1]);
     shader_replace_simple_reset_hook();
@@ -489,57 +565,62 @@ if (global.PE.turnOffPlayerReplace and self.mode != 0)
 
 ## step
 ```
-if (self.type == 1)
-{
-    event_perform_object(ofx, ev_step, 0);
-    return
-}
-
 --//move editor window if it's over the player
 let px = 0;
-with (ocamera)
-{
+with (ocamera){
     let xpos = self.xpos;
     with (oplayer){ 
-        px = self.x - xpos; }
+        px = self.x - xpos;
+    }
 }
 
-if (px > 315 and !global.PE.turnOffReposition)
-{
-    self.ox = 18;
-    self.updateOffsets();
+if (self.ox != self.targetX){
+    self.move();
 }
 
-if (px < 127 and !global.PE.turnOffReposition)
-{
-    self.ox = 370;
-    self.updateOffsets();
+if (px > 315 and self.ox >= 370 and !global.PE.LockPosition){
+    if (self.ox < self.farR){
+        self.targetX = self.farR * 1.25;
+    }
+    else {
+        self.ox = self.farL;
+        self.updateOffsets();
+        self.targetX = 18;
+    }
+}
+
+if (px < 127 and self.ox <= 18 and !global.PE.LockPosition){
+    if (self.ox > self.farL){
+        self.targetX = self.farL * 1.25;
+    }
+    else {
+        self.ox = self.farR;
+        self.updateOffsets();
+        self.targetX = 370;
+    }
 }
 
 let ctrl = keyboard_check(vk_control)
 let str = "";
 
 --//paste currently selected color's hex
-if(ctrl and keyboard_check_pressed('V'))
-{
+if(ctrl and keyboard_check_pressed('V')){
     if (clipboard_has_text()){
-        str = clipboard_get_text(); }
-    if (str != "")
-    {
+        str = clipboard_get_text();
+    }
+    if (str != ""){
         str = string_upper(string_lettersdigits(string_trim(str)));
-        if (string_length(str) == 6)
-        {
+        if (string_length(str) == 6){
             let hex = "0123456789ABCDEF";
             let col = 0;
             let i = 6;
-            while (i > 0)
-            {
+            while (i > 0){
                 col = col | (((string_pos(string_char_at(str, i), hex) - 1)) | ((string_pos(string_char_at(str, i - 1), hex) - 1) << 4));
                 col = col << 8;
                 i -= 2;
             }
             col = col >> 8;
-            col = col | ((self.a * 255) << 24)
+            col = col | ((self.a * 255) << 24);
             self.updatePicker(col);
             alarm_set(0, 1);
         }
@@ -547,10 +628,23 @@ if(ctrl and keyboard_check_pressed('V'))
 }
 
 --//copy currently selected color's hex
-if(ctrl and keyboard_check_pressed('C'))
-{
+if(ctrl and keyboard_check_pressed('C')){
     clipboard_set_text(self.hex);
 }
+
+if(keyboard_check_pressed('T')){
+    global.__scarf_uncharged = undefined;
+    show_message("doing")
+    with (omod_controller) {
+        show_message(self.mod_name)
+        if (self.mod_name == "maya_palette")
+        {
+            event_perform(ev_create);
+            show_message("done");
+        }
+    }
+}
+
 
 --//check if cursor is hovering over a ui object
 let cx = global.mouse_gui_x_;
@@ -560,42 +654,61 @@ self.isHoveringHue = point_in_rectangle(cx, cy, self.ox, self.offsetHueY, self.o
 self.isHoveringAlpha = point_in_rectangle(cx, cy, self.ox, self.offsetAlphaY, self.offsetW + 1, self.offsetAlphaY + self.AlphaH + 1);
 self.isHoveringSatVal = point_in_rectangle(cx, cy, self.ox, self.oy, self.offsetW + 1, self.offsetH + 1);
 self.isHoveringHairLength = point_in_rectangle(cx, cy, self.offsetHairButtonsX, self.offsetHairButtonsY, self.offsetHairButtonsX + (self.HairButtonsWH << 1) + 1, self.offsetHairButtonsY + self.HairButtonsWH + 1);
+self.isHoveringReplace = point_in_rectangle(cx, cy, self.offsetSettingsX, self.offsetSettingsY, self.offsetSettingsX + 9, self.offsetSettingsY + 9);
+self.isHoveringLock = point_in_rectangle(cx, cy, self.offsetSettingsX, self.offsetSettingsY + 11, self.offsetSettingsX + 9, self.offsetSettingsY + 20);
+self.isHoveringForceHair = point_in_rectangle(cx, cy, self.offsetSettingsX, self.offsetSettingsY + 22, self.offsetSettingsX + 9, self.offsetSettingsY + 31);
 
 if (self.isHoveringHairLength){ 
-    self.hairLengthButton = (((cx < (self.offsetHairButtonsX + self.HairButtonsWH)) << 1) - 1) * 0.4; }
+    self.hairLengthButton = (((cx < (self.offsetHairButtonsX + self.HairButtonsWH)) << 1) - 1) * 0.4;
+}
 
 
-if(mouse_check_button_pressed(1))
-{
+if(mouse_check_button_pressed(1)){
     self.isSelectedHue = self.isHoveringHue;
     self.isSelectedAlpha = self.isHoveringAlpha;
     self.isSelectedSatVal = self.isHoveringSatVal;
     self.isSelectedPalette = point_in_rectangle(cx, cy, self.ox - 9, self.oy, self.ox - 5, self.oy + 224);
     self.isSelectedHair = point_in_rectangle(cx, cy, self.offsetHeadX, self.offsetHeadY, self.offsetHeadX + (self.headW >> 1), self.offsetHeadY + self.headH) and (self.mode == 0 or global.PE.forceHair);
     self.isSelectedHairLength = self.isHoveringHairLength and (self.mode != 1 or global.PE.forceHair);
+    self.isSelectedReplace = self.isHoveringReplace;
+    self.isSelectedLock = self.isHoveringLock;
+    self.isSelectedForceHair = self.isHoveringForceHair;
 
-    if (self.isSelectedHairLength)
-    {
+    if (self.isSelectedHairLength){
         self.timer = 0;
         self.pressTimer = self.pressTimerMax;
         self.updateHair(self.hairNumber_ - (self.hairLengthButton * 2.5));
     }
+    if (self.isSelectedReplace){
+        global.PE.ReplacePlayer = !global.PE.ReplacePlayer;
+        self.pressTimer = self.pressTimerMax * 2;
+    }
+    if (self.isSelectedLock){
+        global.PE.LockPosition = !global.PE.LockPosition;
+        self.pressTimer = self.pressTimerMax * 2;
+    }
+    if (self.isSelectedForceHair){
+        global.PE.forceHair = !global.PE.forceHair;
+        self.pressTimer = self.pressTimerMax * 2;
+    }
 }
 
-if(mouse_check_button(1))
-{
+if(mouse_check_button(1)){
     --//making it so you can't shoot while editor window is up
     global.input_skip_ = 1;
     --//fuck you boltcaster!
     if (global.current_weapon_ == 2){
         with(oinput){ 
-            self.button_1[0] = 0;}}
+            self.button_1[0] = 0;
+        }
+    }
     if (!self.isHovering){
         with(oplayer){
-            self.shoot_delay = 2;}}
+            self.shoot_delay = 2;
+        }
+    }
 
-    if(self.isSelectedSatVal)
-    {
+    if(self.isSelectedSatVal){
         self.SatValX = clamp(cx, self.ox, self.offsetW + 1) - self.ox;
         self.SatValY = clamp(cy, self.oy, self.offsetH + 1) - self.oy;
         
@@ -605,8 +718,7 @@ if(mouse_check_button(1))
         alarm_set(0, 1);
     }
 
-    if(self.isSelectedHue)
-    {
+    if(self.isSelectedHue){
         self.HueX = clamp(cx, self.ox, self.offsetW + 1) - self.ox;
 
         self.h = floor(((self.HueX) / (self.wh + 1)) * 255);
@@ -614,8 +726,7 @@ if(mouse_check_button(1))
         alarm_set(0, 1);
     }
 
-    if(self.isSelectedAlpha)
-    {
+    if(self.isSelectedAlpha){
         self.AlphaX = clamp(cx, self.ox, self.offsetW + 1) - self.ox;
 
         self.a = self.AlphaX / (self.wh + 1);
@@ -623,18 +734,15 @@ if(mouse_check_button(1))
         alarm_set(0, 1);
     }
 
-    if (self.isSelectedPalette)
-    {
+    if (self.isSelectedPalette){
         self.selectedPart = clamp((cy - self.oy) >> 2, 0, 55);
         
         self.updatePicker(global.PE.palette_data[self.mode][self.selectedPart]);
     }
 
-    if (self.isSelectedHair and (self.mode == 0 or global.PE.forceHair))
-    {
+    if (self.isSelectedHair and (self.mode == 0 or global.PE.forceHair)){
         self.selectedPart = clamp(floor((cy - (self.offsetHeadY)) * 0.1), 0, 1) + 56;
-        let col = match (self.selectedPart) 
-        {
+        let col = match (self.selectedPart) {
             case 56 {global.hair_start_col_} 
             case 57 {global.hair_end_col_}
             else    {c_black}
@@ -643,17 +751,17 @@ if(mouse_check_button(1))
         self.updatePicker(col);
     }
 
-    if (self.isSelectedHairLength and (self.mode != 1 or global.PE.forceHair))
-    {
+    if (self.isSelectedHairLength and (self.mode != 1 or global.PE.forceHair)){
         if (self.timer >= 30){
-            self.updateHair(); }
+            self.updateHair();
+        }
         else {
-            self.timer += 1}
+            self.timer += 1;
+        }
         self.pressTimer = self.pressTimerMax;
     } 
 }
-else
-{
+else {
     self.isSelectedHue = false;
     self.isSelectedAlpha = false;
     self.isSelectedSatVal = false;
@@ -663,26 +771,11 @@ else
 }
 ```
 
-## draw
-```
-if (self.type == 1)
-{
-    shader_replace_simple_set_hook(global.player_palette_shader_);
-    texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
-    event_perform_object(ofx, ev_draw, 0);
-    shader_replace_simple_reset_hook();
-    return
-}
-```
-
 ## draw_gui_end
 ```
-if (self.type == 1)
-{
-    return
-}
 if (!instance_exists(oplayer)){
-    return; }
+    return;
+}
 
 --//draw ui background
 draw_sprite_stretched(sui_9slice, 0, self.ox - 5, self.oy - 5, self.wh + 11, 234);
@@ -747,18 +840,18 @@ draw_sprite_part_ext(global.PE.splayer_palette[self.mode],0, 1,0, 1,56, self.ox 
 let selectedPartY = self.oy + (self.selectedPart << 2);
 let selectedPartX = self.ox - 9;
 let selectedPartWH = 3;
-if(self.selectedPart > 55)
-{
+if(self.selectedPart > 55){
     selectedPartY = self.offsetHeadY + (self.selectedPart - 56) * 10;
     selectedPartX = self.offsetHeadX - 1 + (57 - self.selectedPart) * 2;
     selectedPartWH = 10;
 }
-else{
-    draw_rectangle_color(selectedPartX, selectedPartY, selectedPartX + selectedPartWH, selectedPartY + selectedPartWH, col, col, col, col, true); }
+else {
+    draw_rectangle_color(selectedPartX, selectedPartY, selectedPartX + selectedPartWH, selectedPartY + selectedPartWH, col, col, col, col, true);
+}
 draw_sprite_stretched(sui_arrow, 0, selectedPartX - 3, selectedPartY - 1, 4, 6);
 
-if (self.mode != 1 or global.PE.forceHair)
-{
+let buttonPressed = self.pressTimer > 0;
+if (self.mode != 1 or global.PE.forceHair){
     --//draw head and hair selector
     let hair_start_col = if (!global.ameli_mode_) {global.hair_start_col_} else {global.PE.palette_data[2][55]};
     let hair_end_col = if (!global.ameli_mode_) {merge_color(global.hair_start_col_, global.hair_end_col_, 0.667)} else {hair_start_col};
@@ -783,39 +876,65 @@ if (self.mode != 1 or global.PE.forceHair)
     draw_set_halign(fa_center);
     draw_text(self.offsetHairButtonsX + self.HairButtonsWH, self.offsetHairButtonsY - 12, string(global.PE.hair_number[self.mode]));
     draw_set_halign(fa_left);
-    let buttonPressed = self.pressTimer > 0;
-    let bDownSpr = match ((self.isHoveringHairLength + buttonPressed) * (self.hairLengthButton > 0))
-    {
+    let bDownSpr = match ((self.isHoveringHairLength + buttonPressed) * (self.hairLengthButton > 0)){
         case 2 {s_scroll_bar_down_button_pressed}
         case 1 {s_scroll_bar_down_button_hover}
         else   {s_scroll_bar_down_button}
     }
-    let bUpSpr = match ((self.isHoveringHairLength + buttonPressed) * (self.hairLengthButton < 0))
-    {
+    let bUpSpr = match ((self.isHoveringHairLength + buttonPressed) * (self.hairLengthButton < 0)){
         case 2 {s_scroll_bar_up_button_pressed}
         case 1 {s_scroll_bar_up_button_hover}
         else   {s_scroll_bar_up_button}
     }
     draw_sprite(bDownSpr, 0, self.offsetHairButtonsX, self.offsetHairButtonsY);
     draw_sprite(bUpSpr, 0, self.offsetHairButtonsX + self.HairButtonsWH, self.offsetHairButtonsY);
-    if (buttonPressed) {
-        self.pressTimer -= 1;}
 }
 
 --//draw preview
 shader_replace_simple_set_hook(global.player_palette_shader_);
 texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
+shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 1,1]);
 
 let previewSize = 48;
 draw_sprite_stretched(global.PE.splayer_palette_ref[self.mode], 1, self.offsetPreviewX, self.offsetPreviewY, previewSize, previewSize);
 
 shader_replace_simple_reset_hook();
 
+--//draw settings buttons
+txtScale = 0.4;
+draw_text_transformed(self.offsetSettingsX + 11, self.offsetSettingsY, "Replace\noplayer", txtScale, txtScale, 0);
+let bReplaceSpr = match ((self.isHoveringReplace * 2 * !buttonPressed) + global.PE.ReplacePlayer){
+    case 0 {s_room_button}
+    case 1 {s_room_button_pressed}
+    else   {s_room_button_hover}
+}
+draw_sprite_stretched(bReplaceSpr, 0, self.offsetSettingsX, self.offsetSettingsY, 9, 9);
+
+draw_text_transformed(self.offsetSettingsX + 11, self.offsetSettingsY + 11, "Lock\nposition", txtScale, txtScale, 0);
+let bLockSpr = match ((self.isHoveringLock * 2 * !buttonPressed) + global.PE.LockPosition){
+    case 0 {s_room_button}
+    case 1 {s_room_button_pressed}
+    else   {s_room_button_hover}
+}
+draw_sprite_stretched(bLockSpr, 0, self.offsetSettingsX, self.offsetSettingsY + 11, 9, 9);
+
+draw_text_transformed(self.offsetSettingsX + 11, self.offsetSettingsY + 22, "Force\nhair", txtScale, txtScale, 0);
+let bForceHairSpr = match ((self.isHoveringForceHair * 2 * !buttonPressed) + global.PE.forceHair){
+    case 0 {s_room_button}
+    case 1 {s_room_button_pressed}
+    else   {s_room_button_hover}
+}
+draw_sprite_stretched(bForceHairSpr, 0, self.offsetSettingsX, self.offsetSettingsY + 22, 9, 9);
+if (buttonPressed) {
+    self.pressTimer -= 1;
+}
+
 draw_set_color(c_white);
 
 --//draw cursor when hovering
 if (!self.isHovering){
-    return; }
+    return;
+}
 
 let ocam = instance_find(ocamera, 0);
 let xoffset = max(0, ((global.game_width - room_width_get()) >> 1));
@@ -824,28 +943,16 @@ let mx = ((global.mousex - ocam.xpos) - xoffset);
 let my = ((global.mousey - ocam.ypos) - yoffset);
 
 if (self.isHoveringSatVal or self.isHoveringHue or self.isHoveringAlpha){
-    draw_sprite(scursor, 1, mx, my); }
-else{
-    draw_cursor(mx, my); }
-
-```
-
-## animation_end
-```
-if (self.type == 1)
-{
-    event_perform_object(ofx, ev_other, ev_animation_end); 
-    return
+    draw_sprite(scursor, 1, mx, my);
 }
+else {
+    draw_cursor(mx, my);
+}
+
 ```
 
 ## alarm_0
 ```
-if (self.type == 1)
-{
-    event_perform_object(ofx, ev_alarm, 0); 
-    return
-}
 self.color = make_colour_hsv(self.h, self.s, self.v) | ((floor(self.a * 255) << 24));
 self.R = colour_get_red(self.color);
 self.G = colour_get_green(self.color);
@@ -860,8 +967,7 @@ match (self.selectedPart)
     else    {global.PE.palette_data[self.mode][self.selectedPart] = self.color}
 }
 
-with(oplayer)
-{
+with(oplayer){
     self.hair_start_col = global.hair_start_col_;
     self.hair_end_col = global.hair_end_col_;
 }
@@ -872,8 +978,7 @@ draw_clear_alpha(c_black, 0);
 draw_sprite(global.PE.splayer_palette[self.mode], 0, 0, 0);
 let i = 0;
 gpu_set_blendmode_ext( bm_one, bm_zero );
-while (i < global.PE.paletteH)
-{
+while (i < global.PE.paletteH){
     draw_set_alpha((global.PE.palette_data[self.mode][i] >> 24) * self.inv255);
     draw_point_colour(1, i, global.PE.palette_data[self.mode][i]);
     draw_set_alpha(1);
@@ -889,14 +994,12 @@ shader_replace_simple_set_hook(global.player_palette_shader_);
 global.palette_texture = sprite_get_texture(global.PE.splayer_palette[self.mode], 0);
 texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
 shader_replace_simple_reset_hook();
-if(!global.PE.turnOffPlayerReplace)
-{
+if(global.PE.ReplacePlayer){
     global.__scarf_charged = global.PE.palette_data[1][54];
     global.__scarf_uncharged = global.PE.palette_data[1][55];
     global.__ameli_hair = global.PE.palette_data[2][55];
 }
-if  (global.ameli_mode_)
-{
+if  (global.ameli_mode_){
     global.hair_start_col_ = global.PE.palette_data[2][55];
     global.hair_end_col_ = global.PE.palette_data[2][55];
 }
@@ -904,26 +1007,26 @@ if  (global.ameli_mode_)
 
 ## cleanup
 ```
-if (self.type == 1)
-{
-    return
-}
-let modeStr = match(self.mode)
-{
+let modeStr = match(self.mode){
     case 2 {"_ameli"}
     case 1 {"_maya"}
     else   {"_fern"}
 }
 sprite_save(global.PE.splayer_palette[self.mode], 0, global.PE.modPath + "saved_palettes/palette" + modeStr + ".png");
-if (global.PE.turnOffPlayerReplace)
-{
-    if (global.maya_mode)
-    {
+if (!global.PE.ReplacePlayer){
+    if (global.maya_mode){
         sprite_save(global.PE.splayer_palette[self.mode], 0, "mods/rmml/maya_palette/palette.png");
+        with (self.parentController){
+            self.f = file_find_first("mods/rmml/maya_palette/DO_NOT_TOUCH/" + "*.png", 0)
+            alarm_set(1, 1);
+        }
     }
-    if (global.ameli_mode_)
-    {
+    if (global.ameli_mode_){
         sprite_save(global.PE.splayer_palette[self.mode], 0, "mods/rmml/ameli_palette/palette.png");
+        with (self.parentController){
+            self.f = file_find_first("mods/rmml/ameli_palette/DO_NOT_TOUCH/" + "*.png", 0)
+            alarm_set(1, 1);
+        }
     }
 }
 
@@ -940,17 +1043,50 @@ surface_set_target(surf);
 draw_clear_alpha(c_black, 0);
 shader_replace_simple_set_hook(global.player_palette_shader_);
 texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
-
+shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 1,1]);
 draw_sprite(global.PE.splayer_palette_ref[self.mode], 1, 0, 0);
 
-if (global.PE.turnOffPlayerReplace and self.mode != 0){
-    shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 0,0]);}
+if (!global.PE.ReplacePlayer and self.mode != 0){
+    shader_set_uniform_f_array(shader_get_uniform(global.player_palette_shader_, "palette_uvs"), [0,0, 0,0]);
+}
 
 shader_replace_simple_reset_hook();
 
 surface_reset_target();
 surface_save(surf, global.PE.modPath + "saved_palettes/palette_ref" + modeStr + ".png");
 surface_free(surf);
+
+ini_open(global.PE.modPath + "config.ini");
+ini_write_real("Settings", "vanillaSaveTextbox", global.PE.vanillaSaveTextbox);
+ini_write_real("Settings", "LockPosition", global.PE.LockPosition);
+ini_write_real("Settings", "ReplacePlayer", global.PE.ReplacePlayer);
+ini_write_real("Settings", "forceHair", global.PE.forceHair);
+ini_close();
+```
+
+# instance PEfx
+## create
+```
+event_perform_object(ofx, ev_create, 0); 
+```
+## alarm_0
+```
+event_perform_object(ofx, ev_alarm, 0); 
+```
+## step
+```
+event_perform_object(ofx, ev_step, 0);
+```
+## animation_end
+```
+event_perform_object(ofx, ev_other, ev_animation_end); 
+```
+## draw
+```
+shader_replace_simple_set_hook(global.player_palette_shader_);
+texture_set_stage(global.main_shader_palette_pointer, global.palette_texture);
+event_perform_object(ofx, ev_draw, 0);
+shader_replace_simple_reset_hook();
 ```
 
 # player
@@ -969,11 +1105,9 @@ event_inherited();
 ## step_end
 ```
 global.fixed();
-with (ofx)
-{
+with (ofx){
     let indx = self.sprite_index;
-    match (indx)
-    {
+    match (indx){
         case splayer_maya_hand_outer {}
         case splayer_maya_body {}
         case splayer_maya_body_upper {}
@@ -1000,7 +1134,7 @@ with (ofx)
             --global.rmml.log(sprite_get_name(indx))
             return }
     }
-    self.mod_name = global.rmml_current_mod;
+    self.mod_name = "PEfx";
     instance_change(omod_instance, false);
     self.type = 1;
     self.sprite_index = indx;
@@ -1013,12 +1147,10 @@ event_inherited();
 ## draw
 ```
 let check = self.draw_type != 1 and self.sprite_index != self.turnaround_sprite and global.ameli_mode_;
-if (check)
-{
+if (check){
     hair_code();
 }
-else
-{
+else {
     self.hair_x = lerp(self.hair_x, self.head_x, 0.6);
     self.hair_y = lerp(self.hair_y, self.head_y + 3, 0.6);
     hair_code();
@@ -1026,13 +1158,11 @@ else
 self.start_palette();
 event_inherited();
 shader_replace_simple_reset_hook();
-if (self.sprite_index == self.turnaround_sprite)
-{
+if (self.sprite_index == self.turnaround_sprite){
     self.hair_y = self.y - 31;
     self.hair_x = self.x - (7 * self.draw_xscale);
 }
-if (check and self.hair != -1)
-{
+if (check and self.hair != -1){
     draw_circle_color(self.hair[0].x, self.hair[0].y, self.hair_size, global.__ameli_hair, global.__ameli_hair, 0);
 }
 
